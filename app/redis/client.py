@@ -2,13 +2,14 @@ import os
 import redis
 import hashlib
 
+import urllib.parse as urlparse
+
 class RedisClient:
 
     def __init__(self):
-        endpoint_url = os.environ.get("REDIS_URL", "127.0.0.1:6379")
-        REDIS_HOST, REDIS_PORT = tuple(endpoint_url.split(":"))
-        REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", None)
-        self.client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+        endpoint_url = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379")
+        url = urlparse.urlparse(endpoint_url)
+        self.client = redis.Redis(host=url.hostname, port=url.port, password=url.password)
 
     def set(self, key, expiration):
         return self.client.set(key, 'true', ex=expiration)
