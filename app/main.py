@@ -40,12 +40,9 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
     msgs = get_messages_for_target(db, user_id)
 
     for candidate in msgs:
-        key = RedisClient.key(user_id, candidate.id)
+        can_send = redis.checkMessage(user_id, candidate.id)
 
-        if not redis.exists(key):
-            # This sets an expiration of 10 minutes - so every message
-            # is capped by 10 min after a send
-            redis.set(key, 600)
+        if can_send:
             return candidate
 
     # If no message, return an empty response
