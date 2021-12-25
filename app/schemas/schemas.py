@@ -4,10 +4,27 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+class MessageRuleBase(BaseModel):
+    message_id: int
+    tokens: int
+    seconds: int
+
+class MessageRuleCreate(MessageRuleBase):
+    pass
+
+class MessageRule(MessageRuleBase):
+    id: int
+    created_at: datetime
+    modified_at: datetime
+
+    class Config:
+        orm_mode = True
+
 class MessageBase(BaseModel):
     message: str
     author_user_id: int
     target_user_id: int
+    rule: MessageRule
 
 class MessageCreate(MessageBase):
     pass

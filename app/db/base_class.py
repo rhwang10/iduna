@@ -11,4 +11,17 @@ class Base:
 
     @declared_attr
     def __tablename__(cls) -> str:
-        return cls.__name__.lower()
+        name = cls.__name__
+        tokens = []
+        start = 0
+        for idx in range(len(name)):
+            print(idx)
+            if idx == 0 or (name[idx].islower() and idx != len(name) - 1):
+                pass
+            elif idx == len(name) - 1 or (name[idx].isupper() and idx != 0):
+                if idx == len(name) - 1:
+                    tokens.append(name[start:idx + 1].lower())
+                else:
+                    tokens.append(name[start:idx].lower())
+                    start = idx
+        return '_'.join(tokens)

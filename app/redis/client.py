@@ -68,10 +68,10 @@ class RedisClient:
             yield candidateMessage
 
 
-    def checkMessage(self, userId, messageId):
-        print(f"Checking rate limiting for user id {userId} and message id {messageId}")
+    def checkMessage(self, userId, message):
+        print(f"Checking rate limiting for user id {userId} and message id {message.id}")
         currentTime = time.time()
-        rawKey = f"{userId}_{messageId}"
+        rawKey = f"{userId}_{message.id}"
 
         refillKey = self._hashKey(rawKey) + "_last_reset"
         bucketKey = self._hashKey(rawKey) + "_tokens"
@@ -79,10 +79,10 @@ class RedisClient:
         lastRefilled = float(self._get(refillKey, currentTime))
 
         # If the current time minus last refilled is 0 - its the first request. We need to add both keys
-        if (currentTime - lastRefilled == 0) or (currentTime - lastRefilled) >= self.DEFAULT_INTERVAL:
+        if (currentTime - lastRefilled == 0) or (currentTime - lastRefilled) >= message.rule.seconds:
             # expire refill tokens every day to clean up old messages
-            self._set(bucketKey, self.DEFAULT_REFILL, 86400)
-            self._set(refillKey, currentTime, 86400)
+            self._set(bucketKey, message.rule.tokens, message.rule.seconds)
+            self._set(refillKey, currentTime, message.rule.seconds)
         else:
             tokens_left = int(self._get(bucketKey))
 
@@ -91,7 +91,7 @@ class RedisClient:
 
         self.client.decr(bucketKey, amount=1)
         # Update/Add the message to the user's sorted set message history
-        self._updateMessageHistory(userId, currentTime, messageId)
+        self._updateMessageHistory(userId, currentTime, message.id)
         return True
 
     def _hashKey(self, rawKey):

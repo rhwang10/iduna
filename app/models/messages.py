@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
 
@@ -10,3 +11,5 @@ class Messages(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime)
     modified_at = Column(DateTime)
+
+    rule = relationship("MessageRules", back_populates="message", uselist=False)

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.messages import Messages
+from app.models.message_rules import MessageRules
 
 def get_messages(db: Session):
     return db.query(Messages).all()
