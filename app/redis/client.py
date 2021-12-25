@@ -40,22 +40,30 @@ class RedisClient:
 
         ssName = self._hashKey(userId)
 
-        sortedMessageHistory = self.client.zrange(ssName, 0, -1, desc=True, withscores=True)
+        sortedMessageHistory = self.client.zrange(ssName, 0, -1, desc=False, withscores=True)
 
-        prevMessages = list(map(lambda x: int(x[0]), sortedMessageHistory))
+        prevMessageIds = list(map(lambda x: int(x[0]), sortedMessageHistory))
+
+        messagesToClean = set(prevMessageIds).difference(idToMessage.keys())
+        for idToDelete in messagesToClean:
+            print(f"Deleting messageId {idToDelete} from {ssName} sorted set")
+            self.client.zrem(ssName, idToDelete)
 
         orderedCandidates = []
-        for candidateId in prevMessages:
+        print(sortedMessageHistory)
+        for candidateId, last_sent in sortedMessageHistory:
             try:
-                orderedCandidates.append(idToMessage[candidateId])
-                del idToMessage[candidateId]
+                orderedCandidates.append(idToMessage[int(candidateId)])
+                del idToMessage[int(candidateId)]
             except KeyError:
                 print(f"Did not find {candidateId} in the available messages!")
 
         unsentMessages = [v for k, v in idToMessage.items()]
+
+        print([m.id for m in unsentMessages])
         orderedCandidates.extend(unsentMessages)
 
-        print(orderedCandidates)
+        print([m.id for m in orderedCandidates])
         for candidateMessage in orderedCandidates:
             yield candidateMessage
 
