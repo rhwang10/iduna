@@ -39,7 +39,7 @@ router = APIRouter()
 async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depends(get_redis)):
     msgs = get_messages_for_target(db, user_id)
 
-    for candidate in msgs:
+    for candidate in redis.rankMessages(user_id, msgs):
         can_send = redis.checkMessage(user_id, candidate.id)
 
         if can_send:

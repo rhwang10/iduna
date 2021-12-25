@@ -13,7 +13,7 @@ class RedisClient:
         self.client = redis.Redis(host=url.hostname, port=url.port, password=url.password)
 
         # Default to every 10 minutes, todo make this configurable
-        self.DEFAULT_INTERVAL = 600
+        self.DEFAULT_INTERVAL = 3
 
         # Default to 5 tokens
         self.DEFAULT_REFILL = 1
@@ -29,12 +29,44 @@ class RedisClient:
 
         return val if val is not None else default_value
 
+    def _updateMessageHistory(self, userId, currentTime, messageId):
+        ssName = self._hashKey(userId)
+        self.client.zrem(ssName, messageId)
+        self.client.zadd(ssName, {messageId: currentTime})
+
+    def rankMessages(self, userId, availableMessages):
+
+        idToMessage = {m.id: m for m in availableMessages}
+
+        ssName = self._hashKey(userId)
+
+        sortedMessageHistory = self.client.zrange(ssName, 0, -1, desc=True, withscores=True)
+
+        prevMessages = list(map(lambda x: int(x[0]), sortedMessageHistory))
+
+        orderedCandidates = []
+        for candidateId in prevMessages:
+            try:
+                orderedCandidates.append(idToMessage[candidateId])
+                del idToMessage[candidateId]
+            except KeyError:
+                print(f"Did not find {candidateId} in the available messages!")
+
+        unsentMessages = [v for k, v in idToMessage.items()]
+        orderedCandidates.extend(unsentMessages)
+
+        print(orderedCandidates)
+        for candidateMessage in orderedCandidates:
+            yield candidateMessage
+
+
     def checkMessage(self, userId, messageId):
         print(f"Checking rate limiting for user id {userId} and message id {messageId}")
         currentTime = time.time()
+        rawKey = f"{userId}_{messageId}"
 
-        refillKey = self._hashKey(userId, messageId) + "_last_reset"
-        bucketKey = self._hashKey(userId, messageId) + "_tokens"
+        refillKey = self._hashKey(rawKey) + "_last_reset"
+        bucketKey = self._hashKey(rawKey) + "_tokens"
 
         lastRefilled = float(self._get(refillKey, currentTime))
 
@@ -50,8 +82,9 @@ class RedisClient:
                 return False
 
         self.client.decr(bucketKey, amount=1)
+        # Update/Add the message to the user's sorted set message history
+        self._updateMessageHistory(userId, currentTime, messageId)
         return True
 
-    def _hashKey(self, userId, msgId):
-        raw_key = f"{userId}_{msgId}"
-        return hashlib.sha512(str.encode(raw_key)).hexdigest()
+    def _hashKey(self, rawKey):
+        return hashlib.sha512(str.encode(rawKey)).hexdigest()
