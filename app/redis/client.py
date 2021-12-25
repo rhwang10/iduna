@@ -13,9 +13,9 @@ class RedisClient:
         self.client = redis.Redis(host=url.hostname, port=url.port, password=url.password)
 
         # Default to every 10 minutes, todo make this configurable
-        self.DEFAULT_INTERVAL = 3
+        self.DEFAULT_INTERVAL = 600
 
-        # Default to 5 tokens
+        # Default to 1 token
         self.DEFAULT_REFILL = 1
 
     def _set(self, key, val, expiration):
@@ -34,23 +34,25 @@ class RedisClient:
         self.client.zrem(ssName, messageId)
         self.client.zadd(ssName, {messageId: currentTime})
 
+    def _cleanSortedSet(self, prevMessageIds, currentMessageIds, ssName):
+        messagesToClean = set(prevMessageIds).difference(set(currentMessageIds))
+        for idToDelete in messagesToClean:
+            print(f"Deleting messageId {idToDelete} from {ssName} sorted set")
+            self.client.zrem(ssName, idToDelete)
+
     def rankMessages(self, userId, availableMessages):
 
         idToMessage = {m.id: m for m in availableMessages}
 
         ssName = self._hashKey(userId)
-
         sortedMessageHistory = self.client.zrange(ssName, 0, -1, desc=False, withscores=True)
 
         prevMessageIds = list(map(lambda x: int(x[0]), sortedMessageHistory))
 
-        messagesToClean = set(prevMessageIds).difference(idToMessage.keys())
-        for idToDelete in messagesToClean:
-            print(f"Deleting messageId {idToDelete} from {ssName} sorted set")
-            self.client.zrem(ssName, idToDelete)
+        # clean up messageIds that have been deleted
+        self._cleanSortedSet(prevMessageIds, idToMessage.keys(), ssName)
 
         orderedCandidates = []
-        print(sortedMessageHistory)
         for candidateId, last_sent in sortedMessageHistory:
             try:
                 orderedCandidates.append(idToMessage[int(candidateId)])
@@ -60,10 +62,8 @@ class RedisClient:
 
         unsentMessages = [v for k, v in idToMessage.items()]
 
-        print([m.id for m in unsentMessages])
         orderedCandidates.extend(unsentMessages)
 
-        print([m.id for m in orderedCandidates])
         for candidateMessage in orderedCandidates:
             yield candidateMessage
 
