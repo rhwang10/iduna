@@ -41,7 +41,7 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
 
     for candidate in redis.rankMessages(user_id, msgs):
         can_send = redis.checkMessage(user_id, candidate)
-
+        print(candidate)
         if can_send:
             return candidate
 

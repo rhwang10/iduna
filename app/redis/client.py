@@ -60,11 +60,12 @@ class RedisClient:
             except KeyError:
                 print(f"Did not find {candidateId} in the available messages!")
 
-        unsentMessages = [v for k, v in idToMessage.items()]
+        # This prioritizes messages that have not been sent before
+        messagesToSend = [v for k, v in idToMessage.items()]
 
-        orderedCandidates.extend(unsentMessages)
+        messagesToSend.extend(orderedCandidates)
 
-        for candidateMessage in orderedCandidates:
+        for candidateMessage in messagesToSend:
             yield candidateMessage
 
 
