@@ -9,6 +9,8 @@ from typing import List
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal, engine
 
+from app.cache.user_cache import UserCache
+
 from app.redis.client import RedisClient
 
 import app.schemas.schemas as schemas
@@ -34,6 +36,7 @@ def get_db():
 
 app = FastAPI()
 router = APIRouter()
+user_cache = UserCache(SessionLocal())
 
 @app.get("/messages/{user_id}", response_model=schemas.Message)
 async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depends(get_redis)):
@@ -41,7 +44,7 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
 
     for candidate in redis.rankMessages(user_id, msgs):
         can_send = redis.checkMessage(user_id, candidate)
-        print(candidate)
+        
         if can_send:
             return candidate
 
@@ -52,3 +55,9 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
 async def getMessages(db: Session = Depends(get_db)):
     msgs = get_messages(db)
     return msgs
+
+@app.get("/users", response_model=schemas.CachedUser)
+async def getUserByTag(name: str, id: str):
+    tag = f"{name}#{id}"
+    user = user_cache[tag]
+    return user

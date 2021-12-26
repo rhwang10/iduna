@@ -15,7 +15,6 @@ class Base:
         tokens = []
         start = 0
         for idx in range(len(name)):
-            print(idx)
             if idx == 0 or (name[idx].islower() and idx != len(name) - 1):
                 pass
             elif idx == len(name) - 1 or (name[idx].isupper() and idx != 0):
