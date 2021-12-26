@@ -3,3 +3,6 @@ fastapi
 sqlalchemy
 psycopg2-binary
 redis
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-datadog
