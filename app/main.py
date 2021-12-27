@@ -1,8 +1,9 @@
 import json
+import sqlalchemy
 
 from fastapi import FastAPI, APIRouter, Depends
 from starlette.responses import Response
-from starlette.status import HTTP_200_OK
+from starlette.status import HTTP_200_OK, HTTP_404_NOT_FOUND
 
 from typing import List
 
@@ -44,7 +45,7 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
 
     for candidate in redis.rankMessages(user_id, msgs):
         can_send = redis.checkMessage(user_id, candidate)
-        
+
         if can_send:
             return candidate
 
@@ -59,5 +60,9 @@ async def getMessages(db: Session = Depends(get_db)):
 @app.get("/users", response_model=schemas.CachedUser)
 async def getUserByTag(name: str, id: str):
     tag = f"{name}#{id}"
-    user = user_cache[tag]
+    try:
+        user = user_cache[tag]
+    except sqlalchemy.exc.NoResultFound as e:
+        print(f"No user found for name {name} and id {id}")
+        return Response(json.dumps({}), status_code=HTTP_404_NOT_FOUND)
     return user
