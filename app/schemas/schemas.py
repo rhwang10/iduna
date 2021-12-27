@@ -41,14 +41,17 @@ class Message(MessageBase):
 class UserBase(BaseModel):
     name: str
     display_name: str
-    email: str
 
 class UserCreate(UserBase):
     hashed_password: str
 
 class User(UserBase):
+    email: str
     created_at: datetime
     modified_at: datetime
+
+class CachedUser(UserBase):
+    id: int
 
     class Config:
         orm_mode = True
