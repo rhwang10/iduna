@@ -55,3 +55,25 @@ CREATE TABLE message_rules (
 -- Indices -------------------------------------------------------
 
 CREATE UNIQUE INDEX message_rules_pkey ON message_rules(id int4_ops);
+
+-- Table Definition ----------------------------------------------
+
+CREATE TABLE "track_events" (
+    "id" integer GENERATED ALWAYS AS IDENTITY,
+    "youtube_id" text NOT NULL,
+    "requested_by" text NOT NULL,
+    "event_type" text NOT NULL,
+    "timestamp" timestamp NOT NULL,
+    "guild_id" text NOT NULL,
+    "title" text NOT NULL,
+    "url" text NOT NULL,
+    "duration" integer NOT NULL,
+    "created_at" timestamp DEFAULT NOW(),
+    "modified_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("id", "youtube_id")
+);
+
+-- Indices -------------------------------------------------------
+
+CREATE INDEX idx_id_requested_by ON track_events(youtube_id, requested_by);
+CREATE INDEX idx_event_type ON track_events(event_type);

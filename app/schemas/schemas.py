@@ -4,6 +4,10 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+################################
+# MessageRule
+################################
+
 class MessageRuleBase(BaseModel):
     message_id: int
     tokens: int
@@ -19,6 +23,11 @@ class MessageRule(MessageRuleBase):
 
     class Config:
         orm_mode = True
+
+################################
+# Message
+################################
+
 
 class MessageBase(BaseModel):
     message: str
@@ -38,6 +47,10 @@ class Message(MessageBase):
     class Config:
         orm_mode = True
 
+################################
+# User
+################################
+
 class UserBase(BaseModel):
     name: str
     display_name: str
@@ -55,3 +68,18 @@ class CachedUser(UserBase):
 
     class Config:
         orm_mode = True
+
+################################
+# Track
+################################
+
+class TrackEvent(BaseModel):
+    id: str
+    requested_by: str
+    event_type: str
+    title: str
+    description: str
+    webpage_url: str
+    duration: int
+    timestamp: datetime
+    guild_id: str
