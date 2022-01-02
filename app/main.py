@@ -4,8 +4,9 @@ from typing import List
 
 # FastAPI and starlette
 from fastapi import FastAPI, APIRouter, Depends
+from fastapi.security import HTTPBearer
 from starlette.responses import Response
-from starlette.status import HTTP_200_OK, HTTP_404_NOT_FOUND
+from starlette.status import HTTP_200_OK, HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST
 from sse_starlette.sse import EventSourceResponse
 
 # SQLAlchemy
@@ -23,7 +24,7 @@ from app.sql.messages import (
 from app.sql.track_events import (
     insertTrackEvent
 )
-
+from app.utils.auth import VerifyToken
 def get_redis():
     redis = RedisClient()
     yield redis
@@ -39,6 +40,7 @@ def get_db():
 # todo: set up latency monitoring w/ middlewares https://fastapi.tiangolo.com/tutorial/middleware/
 
 app = FastAPI()
+token_auth_scheme = HTTPBearer()
 router = APIRouter()
 user_cache = UserCache(SessionLocal())
 
@@ -56,7 +58,13 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
     return Response(json.dumps({}), status_code=HTTP_200_OK)
 
 @app.get("/messages", response_model=List[schemas.Message])
-async def getMessages(db: Session = Depends(get_db)):
+async def getMessages(token: str = Depends(token_auth_scheme), db: Session = Depends(get_db)):
+
+    result = VerifyToken(token.credentials).verify()
+
+    if result.get("status"):
+        return Response(json.dumps(result), status_code=HTTP_400_BAD_REQUEST)
+    
     msgs = get_messages(db)
     return msgs
 

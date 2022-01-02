@@ -5,3 +5,4 @@ psycopg2-binary
 redis
 cachetools
 sse-starlette
+pyjwt[crypto]
