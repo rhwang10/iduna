@@ -41,11 +41,18 @@ def get_db():
 
 app = FastAPI()
 token_auth_scheme = HTTPBearer()
-router = APIRouter()
 user_cache = UserCache(SessionLocal())
 
 @app.get("/messages/{user_id}", response_model=schemas.Message)
-async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depends(get_redis)):
+async def getMessageForUser(user_id: str,
+                            token: str = Depends(token_auth_scheme),
+                            db: Session = Depends(get_db),
+                            redis = Depends(get_redis)):
+    authResult = VerifyToken(token.credentials).verify()
+
+    if authResult.get("error"):
+        return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
+
     msgs = get_messages_for_target(db, user_id)
 
     for candidate in redis.rankMessages(user_id, msgs):
@@ -58,18 +65,25 @@ async def getMessageForUser(user_id, db: Session = Depends(get_db), redis = Depe
     return Response(json.dumps({}), status_code=HTTP_200_OK)
 
 @app.get("/messages", response_model=List[schemas.Message])
-async def getMessages(token: str = Depends(token_auth_scheme), db: Session = Depends(get_db)):
+async def getMessages(token: str = Depends(token_auth_scheme),
+                      db: Session = Depends(get_db)):
 
-    result = VerifyToken(token.credentials).verify()
+    authResult = VerifyToken(token.credentials).verify()
 
-    if result.get("status"):
-        return Response(json.dumps(result), status_code=HTTP_400_BAD_REQUEST)
-    
+    if authResult.get("error"):
+        return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
+
     msgs = get_messages(db)
     return msgs
 
 @app.get("/users", response_model=schemas.CachedUser)
-async def getUserByTag(name: str, id: str):
+async def getUserByTag(name: str,
+                       id: str,
+                       token: str = Depends(token_auth_scheme)):
+    authResult = VerifyToken(token.credentials).verify()
+    if authResult.get("error"):
+        return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
+
     tag = f"{name}#{id}"
     try:
         user = user_cache[tag]
@@ -79,7 +93,14 @@ async def getUserByTag(name: str, id: str):
     return user
 
 @app.get("/toptracks/{guild_id}")
-async def getTopTracks(guild_id: str, limit: int, redis = Depends(get_redis)):
+async def getTopTracks(guild_id: str,
+                       limit: int,
+                       token: str = Depends(token_auth_scheme),
+                       redis = Depends(get_redis)):
+    authResult = VerifyToken(token.credentials).verify()
+    if authResult.get("error"):
+        return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
+
     topTracks = redis.getNTopTracks(guild_id, limit)
 
     resp = {}
@@ -90,7 +111,14 @@ async def getTopTracks(guild_id: str, limit: int, redis = Depends(get_redis)):
     return Response(json.dumps(resp, ensure_ascii=False))
 
 @app.post("/trackevents")
-async def events(track_event: schemas.TrackEvent, db: Session = Depends(get_db), redis = Depends(get_redis)):
+async def events(track_event: schemas.TrackEvent,
+                 token: str = Depends(token_auth_scheme),
+                 db: Session = Depends(get_db),
+                 redis = Depends(get_redis)):
+
+    authResult = VerifyToken(token.credentials).verify()
+    if authResult.get("error"):
+        return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
     # Insert a row into track_events table, and update the sorted set
     # TODO: exception handling
     # TODO: if not seen before, index it into elasticsearch

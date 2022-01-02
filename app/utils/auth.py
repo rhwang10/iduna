@@ -34,9 +34,9 @@ class VerifyToken:
                 self.token
             ).key
         except jwt.exceptions.PyJWKClientError as err:
-            return {"status": "error", "type": "PyJWKClientError", "msg": str(err)}
+            return {"error": "PyJWKClientError", "msg": str(err)}
         except jwt.exceptions.DecodeError as err:
-            return {"status": "error", "type": "DecodeError", "msg": str(err)}
+            return {"error": "DecodeError", "msg": str(err)}
 
         try:
             payload = jwt.decode(
@@ -47,6 +47,6 @@ class VerifyToken:
                 issuer=self.config["ISSUER"]
             )
         except Exception as e:
-            return {"status": "error", "type": "JWTError", "msg": str(e)}
+            return {"error": "AuthenticationError", "msg": str(e)}
 
         return payload
