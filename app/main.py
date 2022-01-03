@@ -25,6 +25,8 @@ from app.sql.track_events import (
     insertTrackEvent
 )
 from app.utils.auth import VerifyToken
+from app.utils.constants import REDIS_SS_DELIMITER
+
 def get_redis():
     redis = RedisClient()
     yield redis
@@ -105,7 +107,7 @@ async def getTopTracks(guild_id: str,
 
     resp = {}
     for memberName, timesPlayed in topTracks:
-        _, title = memberName.split("|")
+        _, title = memberName.split(REDIS_SS_DELIMITER)
         resp[title] = int(timesPlayed)
 
     return Response(json.dumps(resp, ensure_ascii=False))

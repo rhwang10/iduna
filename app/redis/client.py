@@ -6,6 +6,7 @@ import time
 import urllib.parse as urlparse
 
 from app.schemas.schemas import TrackEvent
+from app.utils.constants import REDIS_SS_DELIMITER
 
 class RedisClient:
 
@@ -102,7 +103,7 @@ class RedisClient:
 
     def updateTrackRank(self, track_event: TrackEvent):
         ssName = track_event.guild_id + "_track_ranks"
-        memberName = track_event.id + "|" + track_event.title
+        memberName = track_event.id + REDIS_SS_DELIMITER + track_event.title
         self.client.zincrby(ssName, 1, memberName)
 
     def getNTopTracks(self, guild_id:str, n: int):
