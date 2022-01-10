@@ -2,7 +2,7 @@ from cachetools import TTLCache
 from datetime import datetime, timedelta
 
 from app.sql.users import (
-    get_user_by_tag
+    get_user_by_discord_id
 )
 
 class UserCache(TTLCache):
@@ -15,6 +15,6 @@ class UserCache(TTLCache):
 
     def __missing__(self, key):
         print(f"Refreshing {key} to cache")
-        user = get_user_by_tag(self.db, key)
+        user = get_user_by_discord_id(self.db, key)
         self[key] = user
         return user

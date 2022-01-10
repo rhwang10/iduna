@@ -79,18 +79,16 @@ async def getMessages(token: str = Depends(token_auth_scheme),
     return msgs
 
 @app.get("/users", response_model=schemas.CachedUser)
-async def getUserByTag(name: str,
-                       id: str,
+async def getUserByTag(discord_id: int,
                        token: str = Depends(token_auth_scheme)):
     authResult = VerifyToken(token.credentials).verify()
     if authResult.get("error"):
         return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
 
-    tag = f"{name}#{id}"
     try:
-        user = user_cache[tag]
+        user = user_cache[discord_id]
     except sqlalchemy.exc.NoResultFound as e:
-        print(f"No user found for name {name} and id {id}")
+        print(f"No user found for Discord Id: {discord_id}")
         return Response(json.dumps({}), status_code=HTTP_404_NOT_FOUND)
     return user
 

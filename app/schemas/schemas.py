@@ -54,6 +54,7 @@ class Message(MessageBase):
 class UserBase(BaseModel):
     name: str
     display_name: str
+    discord_id: int
 
 class UserCreate(UserBase):
     hashed_password: str
