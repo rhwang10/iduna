@@ -6,7 +6,7 @@ from typing import List
 from fastapi import FastAPI, APIRouter, Depends
 from fastapi.security import HTTPBearer
 from starlette.responses import Response
-from starlette.status import HTTP_200_OK, HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST
+from starlette.status import HTTP_200_OK, HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_204_NO_CONTENT
 from sse_starlette.sse import EventSourceResponse
 
 # SQLAlchemy
@@ -19,7 +19,8 @@ from app.redis.client import RedisClient
 import app.schemas.schemas as schemas
 from app.sql.messages import (
     get_messages,
-    get_messages_for_target
+    get_messages_for_target,
+    create_message
 )
 from app.sql.track_events import (
     insertTrackEvent
@@ -125,3 +126,21 @@ async def events(track_event: schemas.TrackEvent,
     insertTrackEvent(db, track_event)
     redis.updateTrackRank(track_event)
     return Response(json.dumps({}), status_code=HTTP_200_OK)
+
+@app.post("/messages")
+async def createMessage(message: schemas.MessageCreate,
+                        token: str = Depends(token_auth_scheme),
+                        db: Session = Depends(get_db)):
+
+    authResult = VerifyToken(token.credentials).verify()
+    if authResult.get("error"):
+        return Response(json.dumps(authResult), status_code=HTTP_400_BAD_REQUEST)
+    
+    message_id, message_rule_id = create_message(db, message)
+    return Response(
+        json.dumps(
+            {
+                "message_id": message_id,
+                "rule_id": message_rule_id
+            }
+        ), status_code=HTTP_200_OK)

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
-
+from sqlalchemy.sql import func
 from app.db.base_class import Base
 
 class Users(Base):
@@ -9,5 +9,5 @@ class Users(Base):
     display_name = Column(String(256), nullable=False)
     email = Column(String(256))
     hashed_password = Column(String(256))
-    created_at = Column(DateTime)
-    modified_at = Column(DateTime)
+    created_at = Column(DateTime, server_default=func.now())
+    modified_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
